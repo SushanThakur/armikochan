@@ -36,7 +36,7 @@ void loop(){
   
   for(int i=0; i<6; i++){
     int temp = map(analogRead(potPins[i]), 0, 4095, 0, 180);
-    Serial.print("temp = "); Serial.print(temp);
+    //Serial.print("temp = "); Serial.print(temp);
     if(abs(data[i]-temp) > 2){
       data[i] = temp;
     } else if(temp == 0) {
