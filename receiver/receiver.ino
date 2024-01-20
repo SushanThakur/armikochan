@@ -16,8 +16,8 @@ int servopins[] = {25, 26, 27, 14, 12, 13};
 
 int servopotpins[] = {36, 39, 34, 35, 32, 33};
 
-int minVal[] = {195, 170, 0, 0, 0, 0};
-int maxVal[] = {3510, 3440, 0, 0, 0, 0};
+int minVal[] = {190, 149, 205, 171, 171, 336};
+int maxVal[] = {3530, 3507, 3514, 3376, 3376, 2396};
 
 int servoAttached = 0;
 
@@ -51,7 +51,7 @@ void setup() {
 
   for(int i=0; i<6; i++){
     servo[i].attach(servopins[i]);
-    digitalWrite(servopotpins[i], HIGH);
+    // digitalWrite(servopotpins[i], HIGH);
     pinMode(servopotpins[i], INPUT);
   }
 
@@ -63,6 +63,9 @@ void setup() {
   if(!SD.begin()){
     Serial.println("SD card initialization failed!");
     writeLed(255, 0, 0);
+    while(1){
+      //
+    }
   }
   writeLed(0, 0, 255);
 }
@@ -83,10 +86,13 @@ void loop() {
     readServoPosition();
     //removeTrailAtEOF();
   }
+
   if(!digitalRead(pushbttn1) && digitalRead(pushbttn2)){   
     removeTrailAtEOF();
-    for(int i=0; i<6; i++){
-      servo[i].attach(servopins[i]);
+    if(!servoAttached){
+      for(int i=0; i<6; i++){
+        servo[i].attach(servopins[i]);
+      }
     }
     servoAttached = 1;
     writeLed(0, 255, 0);
@@ -118,19 +124,21 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len) {
 }
 
 void readServoPosition(void){
-  String dataString = "";
-  for(int i=0; i<6; i++){
-    int temp = analogRead(servopotpins[i]);
-    int maptemp = map(temp, minVal[i], maxVal[i], 0, 180);
-    dataString += String(maptemp);
-    dataString += ",";
-    // Serial.print(maptemp);
-    // Serial.print(", ");
-  }
-  //writeFile(SD, "/pos.txt", String(temp).c_str());
-  dataString += "\n";
-  writeFile(SD, path, dataString);
-  // Serial.println();
+
+    String dataString = "";
+    for(int i=0; i<6; i++){
+      int temp = analogRead(servopotpins[i]);
+      int maptemp = map(temp, minVal[i], maxVal[i], 0, 180);
+      dataString += String(maptemp);
+      dataString += ",";
+      // Serial.print(maptemp);
+      // Serial.print(", ");
+    }
+    //writeFile(SD, "/pos.txt", String(temp).c_str());
+    dataString += "\n";
+    writeFile(SD, path, dataString);
+    // Serial.println();
+
   writeLed(0, 0, 255);
 }
 
@@ -192,6 +200,7 @@ void readFile(fs::FS &fs, const char * path){
   writeLed(0, 0, 255);
 }
 
+// This function was written with the help of ChatGPT
 void removeTrailAtEOF() {
   // Open the file in read mode
   File file = SD.open(path, FILE_READ);
