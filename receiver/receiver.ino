@@ -5,6 +5,20 @@
 #include "SD.h"
 #include "SPI.h"
 
+#include <Ramp.h>
+
+#include <ESPAsyncWebServer.h>
+#include <ArduinoWebsockets.h>
+#include <ArduinoJson.h>
+
+const char *ssid = "Finance_Mantra_2.4";
+const char *password = "Whatdahellisthes";
+
+AsyncWebServer server(80);
+AsyncWebSocket myWebSocket("/ws");
+
+bool clientConnected = false;
+
 
 // channel to look data for
 #define CHANNEL 1
@@ -41,10 +55,39 @@ void writeLed(int r, int g, int b);
 void removeTrailAtEOF(void);
 //void recordMove(void);
 
+void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  if (type == WS_EVT_CONNECT) {
+    Serial.println("WebSocket client connected");
+    clientConnected = true;
+  } else if (type == WS_EVT_DISCONNECT) {
+    Serial.println("WebSocket client disconnected");
+    clientConnected = false;
+  } else if (type == WS_EVT_DATA && clientConnected) {
+    // Parse JSON data from the WebSocket message
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, (const char *)data);
+
+    // Update servo positions
+    servo[0].write(doc["servo1"]);
+    servo[1].write(doc["servo2"]);
+    servo[2].write(doc["servo3"]);
+    servo[3].write(doc["servo4"]);
+    servo[4].write(doc["servo5"]);
+    servo[5].write(doc["servo6"]);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
-
+  
   WiFi.mode(WIFI_AP);
+
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Connecting to WiFi...");
+  }
+  Serial.println("Connected to WiFi");
+
 
   esp_now_init();
   esp_now_register_recv_cb(OnDataRecv);
@@ -67,6 +110,70 @@ void setup() {
       //
     }
   }
+
+   // Serve HTML page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(200, "text/html", R"rawliteral(
+      <html>
+        <head>
+          <script>
+            var socket = new WebSocket('ws://' + window.location.hostname + '/ws');
+
+            function updateServos() {
+              var servoPos = [
+                document.getElementById('servo1').value,
+                document.getElementById('servo2').value,
+                document.getElementById('servo3').value,
+                document.getElementById('servo4').value,
+                document.getElementById('servo5').value,
+                document.getElementById('servo6').value
+              ];
+
+              var data = {
+                servo1: parseInt(servoPos[0]),
+                servo2: parseInt(servoPos[1]),
+                servo3: parseInt(servoPos[2]),
+                servo4: parseInt(servoPos[3]),
+                servo5: parseInt(servoPos[4]),
+                servo6: parseInt(servoPos[5])
+              };
+
+              socket.send(JSON.stringify(data));
+            }
+          </script>
+        </head>
+        <body>
+          <h1>Servo Control</h1>
+          
+          <label for='servo1'>Servo 1</label>
+          <input type='range' id='servo1' min='0' max='180' value='90' oninput='updateServos()'><br>
+          
+          <label for='servo2'>Servo 2</label>
+          <input type='range' id='servo2' min='0' max='180' value='135' oninput='updateServos()'><br>
+          
+          <label for='servo3'>Servo 3</label>
+          <input type='range' id='servo3' min='0' max='180' value='0' oninput='updateServos()'><br>
+          
+          <label for='servo4'>Servo 4</label>
+          <input type='range' id='servo4' min='0' max='180' value='40' oninput='updateServos()'><br>
+          
+          <label for='servo5'>Servo 5</label>
+          <input type='range' id='servo5' min='0' max='180' value='80' oninput='updateServos()'><br>
+          
+          <label for='servo6'>Servo 6</label>
+          <input type='range' id='servo6' min='0' max='180' value='15' oninput='updateServos()'>
+        </body>
+      </html>
+    )rawliteral");
+  });
+
+  // Start WebSocket server
+  myWebSocket.onEvent(onWebSocketEvent);
+  server.addHandler(&myWebSocket);
+
+  // Start the server
+  server.begin();
+
   writeLed(0, 0, 255);
 }
 
@@ -253,8 +360,3 @@ void removeTrailAtEOF() {
     //Serial.println("File is empty.");
   }
 }
-
-
-
-
-
