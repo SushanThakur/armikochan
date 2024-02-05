@@ -1,12 +1,15 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-esp_now_peer_info_t receiver;
-uint8_t esp32receiver[] = {0xB0, 0xA7, 0x32, 0xF3, 0x64, 0x31};
+#define changeRate 0.05
 
-int potPins[] = {36, 39, 34, 35, 32, 33};
-int potMin[] = {0,0,0,0,0,0};
-int potMax[] ={4095,4095,4095,4095,4095,4095};
+esp_now_peer_info_t receiver;
+uint8_t esp32receiver[] = {0xB0, 0xA7, 0x32, 0xF3, 0x64, 0x30};
+
+int potPins[] = {36, 39, 35, 34, 32, 33};
+
+int potMin[] = {0,250,3450,4095,2440,0};  
+int potMax[] ={2700,2700,1420,1360,0,528};
 
 // LED rgb pin def
 const int redwire = 15;
@@ -43,27 +46,55 @@ void setup(){
   writeLed(0, 0, 255);
 }
 
+int pre;
+int current;
+
 void loop(){
-  
   for(int i=0; i<6; i++){
-    int temp = map(analogRead(potPins[i]), potMin[i], potMax[i], 0, 180);
+    //int temp = map(analogRead(potPins[i]), potMin[i], potMax[i], 0, 180);
+
     //Serial.print("temp = "); Serial.print(temp);
     //data[i] = temp;
     //Serial.print("t=");Serial.print()
-    if(abs(data[i]-temp) > 2){
-      data[i] = temp;
-    } else if(temp == 0) {
-      data[i] = 0;
-    } else if(temp == 180){
+
+    pre = data[i];
+    // int temp = map((i == 0 || i == 1 || i == 4)?(analogRead(potPins[i]) < potMin[i] ? potMin[i] : analogRead(potPins[i])):analogRead(potPins[i]), potMin[i], potMax[i], 0, 200); //0 1 4
+
+    int temp = map(analogRead(potPins[i]), potMin[i], potMax[i], 0, 200);
+    
+    //(i == 0 || i == 1 || i == 4)?(analogRead(potPins[i]) < potMin[i] ? potMin[i] : analogRead(potPins[i])):analogRead(potPin[i])
+    
+    
+    current = (temp * changeRate) + (pre * (1-changeRate));
+
+    pre = current;
+
+    data[i] = current;
+    if(data[i]>180){
       data[i] = 180;
+    } else if(data[i]<0){
+      data[i] = 0;
     }
+
+    // if(i==5){
+    //   data[i] = map(data[i], 0, 180, 0, 102);
+    // }
+
+    // if(abs(data[i]-temp) > 2){
+    //   data[i] = temp;
+    // } else if(temp == 0) {
+    //   data[i] = 0;
+    // } else if(temp == 180){
+    //   data[i] = 180;
+    // }
+
 
     //Serial.print(" Data = ");
     Serial.print(data[i]); Serial.print(", ");
   }
   Serial.println();
   esp_now_send(esp32receiver, data, sizeof(data));
-  //delay(20);
+  //delay(200);
 }
 
 void writeLed(int r, int g, int b){

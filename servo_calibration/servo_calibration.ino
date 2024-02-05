@@ -5,7 +5,7 @@ int servopins[] = {25, 26, 27, 14, 12, 13};
 
 int servopotpins[] = {36, 39, 34, 35, 32, 33};
 
-const int ser = 0;
+const int ser = 1;
 int long avg=0;
 
 void checkMin(void);

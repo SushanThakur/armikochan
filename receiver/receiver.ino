@@ -5,14 +5,20 @@
 #include "SD.h"
 #include "SPI.h"
 
-#include <Ramp.h>
+//#include <Ramp.h>
 
 #include <ESPAsyncWebServer.h>
 #include <ArduinoWebsockets.h>
 #include <ArduinoJson.h>
 
-const char *ssid = "Finance_Mantra_2.4";
-const char *password = "Whatdahellisthes";
+#define changeRate 0.05
+
+const char *ssid = "TESTAP01";
+const char *password = "12345678@";
+
+esp_now_peer_info_t peerInfo;
+uint8_t broadcastAddress[] = { 0xCA, 0xC9, 0xA3, 0x60, 0x2B, 0xA5 };
+uint8_t data[] = { 0 };
 
 AsyncWebServer server(80);
 AsyncWebSocket myWebSocket("/ws");
@@ -26,12 +32,15 @@ bool clientConnected = false;
 
 // Servo def
 Servo servo[6];
-int servopins[] = {25, 26, 27, 14, 12, 13};
+int servopins[] = { 25, 26, 27, 14, 12, 13 };
 
-int servopotpins[] = {36, 39, 34, 35, 32, 33};
+int servopotpins[] = { 36, 39, 34, 35, 32, 33 };
 
-int minVal[] = {190, 149, 205, 171, 171, 336};
-int maxVal[] = {3530, 3507, 3514, 3376, 3376, 2396};
+int minVal[] = { 190, 132, 205, 171, 140, 2980 };
+int maxVal[] = { 3530, 3497, 3514, 3376, 3390, 1900 };
+
+// int minVal[] = {0, 0, 0, 0, 0, 2980};
+// int maxVal[] = {4095, 4095, 4095, 4095, 4095, 1900};
 
 int servoAttached = 0;
 
@@ -49,37 +58,19 @@ const int bluewire = 4;
 char path[] = "/pos.txt";
 
 // Functions Dec
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len);
 void readServoPosition(void);
 void writeLed(int r, int g, int b);
+void writeFile(fs::FS &fs, const char *path, const String &message);
+void readFile(fs::FS &fs, const char *path);
 void removeTrailAtEOF(void);
+void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
 //void recordMove(void);
-
-void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
-  if (type == WS_EVT_CONNECT) {
-    Serial.println("WebSocket client connected");
-    clientConnected = true;
-  } else if (type == WS_EVT_DISCONNECT) {
-    Serial.println("WebSocket client disconnected");
-    clientConnected = false;
-  } else if (type == WS_EVT_DATA && clientConnected) {
-    // Parse JSON data from the WebSocket message
-    DynamicJsonDocument doc(1024);
-    deserializeJson(doc, (const char *)data);
-
-    // Update servo positions
-    servo[0].write(doc["servo1"]);
-    servo[1].write(doc["servo2"]);
-    servo[2].write(doc["servo3"]);
-    servo[3].write(doc["servo4"]);
-    servo[4].write(doc["servo5"]);
-    servo[5].write(doc["servo6"]);
-  }
-}
 
 void setup() {
   Serial.begin(115200);
-  
+
   WiFi.mode(WIFI_AP);
 
   WiFi.begin(ssid, password);
@@ -87,12 +78,25 @@ void setup() {
     Serial.println("Connecting to WiFi...");
   }
   Serial.println("Connected to WiFi");
+  Serial.println(WiFi.localIP());
 
 
   esp_now_init();
-  esp_now_register_recv_cb(OnDataRecv);
 
-  for(int i=0; i<6; i++){
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 1;
+  peerInfo.encrypt = false;
+
+  esp_now_register_recv_cb(OnDataRecv);
+  esp_now_register_send_cb(OnDataSent);
+
+  // Add peer
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+    return;
+  }
+
+  for (int i = 0; i < 6; i++) {
     servo[i].attach(servopins[i]);
     // digitalWrite(servopotpins[i], HIGH);
     pinMode(servopotpins[i], INPUT);
@@ -103,15 +107,15 @@ void setup() {
   pinMode(pushbttn1, INPUT);
   pinMode(pushbttn2, INPUT);
 
-  if(!SD.begin()){
+  if (!SD.begin()) {
     Serial.println("SD card initialization failed!");
     writeLed(255, 0, 0);
-    while(1){
+    while (1) {
       //
     }
   }
 
-   // Serve HTML page
+  // Serve HTML page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send(200, "text/html", R"rawliteral(
       <html>
@@ -146,22 +150,22 @@ void setup() {
           <h1>Servo Control</h1>
           
           <label for='servo1'>Servo 1</label>
-          <input type='range' id='servo1' min='0' max='180' value='90' oninput='updateServos()'><br>
+          <input type='range' id='servo1' min='0' max='180' value='90' oninput='updateServos()'><br><br>
           
           <label for='servo2'>Servo 2</label>
-          <input type='range' id='servo2' min='0' max='180' value='135' oninput='updateServos()'><br>
+          <input type='range' id='servo2' min='0' max='180' value='45' oninput='updateServos()'><br><br>
           
           <label for='servo3'>Servo 3</label>
-          <input type='range' id='servo3' min='0' max='180' value='0' oninput='updateServos()'><br>
+          <input type='range' id='servo3' min='0' max='180' value='0' oninput='updateServos()'><br><br>
           
           <label for='servo4'>Servo 4</label>
-          <input type='range' id='servo4' min='0' max='180' value='40' oninput='updateServos()'><br>
+          <input type='range' id='servo4' min='0' max='180' value='40' oninput='updateServos()'><br><br>
           
           <label for='servo5'>Servo 5</label>
-          <input type='range' id='servo5' min='0' max='180' value='80' oninput='updateServos()'><br>
+          <input type='range' id='servo5' min='0' max='180' value='90' oninput='updateServos()'><br><br>
           
           <label for='servo6'>Servo 6</label>
-          <input type='range' id='servo6' min='0' max='180' value='15' oninput='updateServos()'>
+          <input type='range' id='servo6' min='24' max='102' value='24' oninput='updateServos()'>
         </body>
       </html>
     )rawliteral");
@@ -180,32 +184,39 @@ void setup() {
 int deleted = 0;
 
 void loop() {
-  if(digitalRead(pushbttn1) && !digitalRead(pushbttn2)){   
-    if(deleted == 0){
+  if (digitalRead(pushbttn1) && !digitalRead(pushbttn2)) {
+    if (deleted == 0) {
       SD.remove(path);
       deleted = 1;
     }
-    for(int i=0; i<6; i++){
+    for (int i = 0; i < 6; i++) {
       servo[i].detach();
     }
     servoAttached = 0;
     writeLed(255, 0, 0);
-    readServoPosition();
+    while (1) {
+      readServoPosition();
+      delay(10);
+    }
     //removeTrailAtEOF();
   }
 
-  if(!digitalRead(pushbttn1) && digitalRead(pushbttn2)){   
+  if (!digitalRead(pushbttn1) && digitalRead(pushbttn2)) {
     removeTrailAtEOF();
-    if(!servoAttached){
-      for(int i=0; i<6; i++){
+    if (!servoAttached) {
+      for (int i = 0; i < 6; i++) {
         servo[i].attach(servopins[i]);
       }
     }
     servoAttached = 1;
     writeLed(0, 255, 0);
-    readFile(SD, path);
     deleted = 0;
+    while (1) {
+      readFile(SD, path);
+      delay(20);
+    }
   }
+  //esp_now_send(broadcastAddress, data, sizeof(data));
   // Serial.print(analogRead(36));
   // Serial.print(", ");
   // Serial.print(analogRead(39));
@@ -216,40 +227,76 @@ void loop() {
 
 // Functions def
 
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
 void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len) {
-  if(!servoAttached){
-    for(int i=0; i<6; i++){
-        servo[i].attach(servopins[i]);
+  if (!servoAttached) {
+    for (int i = 0; i < 6; i++) {
+      servo[i].attach(servopins[i]);
     }
     servoAttached = 1;
   }
+  int temp;
   for (int i = 0; i < 6; i++) {
-    Serial.print(data[i]); Serial.print(", ");
-    servo[i].write(data[i]);
+    Serial.print(data[i]);
+    Serial.print(", ");
+    if (i == 5) {
+      
+      if(data[i] == 208){
+        temp = 24;
+      } else if(data[i] == 232){
+        temp = 102;
+      } else {
+        temp = map(data[i], 0, 180, 24, 102);
+      }
+      servo[i].write(temp);
+    } else {
+      servo[i].write(data[i]);
+    }
+    //servo[i].write(data[i]);
   }
   Serial.println();
 }
 
-void readServoPosition(void){
+void readServoPosition(void) {
 
-    String dataString = "";
-    for(int i=0; i<6; i++){
-      int temp = analogRead(servopotpins[i]);
-      int maptemp = map(temp, minVal[i], maxVal[i], 0, 180);
-      dataString += String(maptemp);
-      dataString += ",";
-      // Serial.print(maptemp);
-      // Serial.print(", ");
+  String dataString = "";
+
+  for (int i = 0; i < 6; i++) {
+    int temp = analogRead(servopotpins[i]);
+    int maptemp = map(temp, minVal[i], maxVal[i], i == 5 ? 24 : 0, i == 5 ? 102 : 180);
+    if (i == 5) {
+      if (maptemp > 120) {
+        maptemp = 120;
+      } else if (maptemp < 14) {
+        maptemp = 24;
+      }
+    } else {
+      if (maptemp > 180) {
+        maptemp = 180;
+      } else if (maptemp < 0) {
+        maptemp = 0;
+      }
     }
-    //writeFile(SD, "/pos.txt", String(temp).c_str());
-    dataString += "\n";
-    writeFile(SD, path, dataString);
-    // Serial.println();
+    dataString += String(maptemp);
+    dataString += ",";
+    // Serial.print(maptemp);
+    // Serial.print(", ");
+  }
 
-  writeLed(0, 0, 255);
+  //writeFile(SD, "/pos.txt", String(temp).c_str());
+
+  dataString += "\n";
+  writeFile(SD, path, dataString);
+  // Serial.println();
+
+  //writeLed(0, 0, 255);
 }
 
-void writeLed(int r, int g, int b){
+void writeLed(int r, int g, int b) {
   analogWrite(redwire, r);
   analogWrite(greenwire, g);
   analogWrite(bluewire, b);
@@ -272,19 +319,19 @@ void writeFile(fs::FS &fs, const char *path, const String &message) {
   //delay(50);
 }
 
-void readFile(fs::FS &fs, const char * path){
+void readFile(fs::FS &fs, const char *path) {
   //writeLed(0, 255, 0);
   //Serial.printf("Reading file: %s\n", path);
   // Serial.println();
   // Serial.println("File Started: ");
   File file = fs.open(path);
-  if(!file){
+  if (!file) {
     Serial.println("Failed to open file for reading");
     return;
   }
   int i = 0;
   //Serial.print("Read from file: ");
-  while(file.available()){
+  while (file.available()) {
     //Serial.write(file.read());
     String buffer = file.readStringUntil(',');
     int rot = buffer.toInt();
@@ -292,19 +339,18 @@ void readFile(fs::FS &fs, const char * path){
     Serial.print(rot);
     // Serial.print("-");
     // Serial.print(i);
-    servo[i].write(rot);
-    delay(1);
+    servo[i].write(rot);  //////////////////////////////////////////////
+    delay(2);
     Serial.print(", ");
-    if(i<5){
+    if (i < 5) {
       i++;
-    }
-    else{
+    } else {
       i = 0;
       Serial.println();
     }
   }
   file.close();
-  writeLed(0, 0, 255);
+  //writeLed(0, 0, 255);
 }
 
 // This function was written with the help of ChatGPT
@@ -323,7 +369,7 @@ void removeTrailAtEOF() {
   // If the file is not empty
   if (fileSize > 0) {
     // Allocate a buffer to store the content of the file
-    char* fileContent = new char[fileSize + 1];
+    char *fileContent = new char[fileSize + 1];
 
     // Read the entire content of the file
     file.readBytes(fileContent, fileSize);
@@ -358,5 +404,27 @@ void removeTrailAtEOF() {
     delete[] fileContent;
   } else {
     //Serial.println("File is empty.");
+  }
+}
+
+void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  if (type == WS_EVT_CONNECT) {
+    Serial.println("WebSocket client connected");
+    clientConnected = true;
+  } else if (type == WS_EVT_DISCONNECT) {
+    Serial.println("WebSocket client disconnected");
+    clientConnected = false;
+  } else if (type == WS_EVT_DATA && clientConnected) {
+    // Parse JSON data from the WebSocket message
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, (const char *)data);
+
+    // Update servo positions
+    servo[0].write(doc["servo1"]);
+    servo[1].write(doc["servo2"]);
+    servo[2].write(doc["servo3"]);
+    servo[3].write(doc["servo4"]);
+    servo[4].write(doc["servo5"]);
+    servo[5].write(doc["servo6"]);
   }
 }
