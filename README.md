@@ -6,7 +6,7 @@ Welcome to the **Armikochan** repository! This is my hobby project showcasing a 
 
 - **Source Code**: The primary code for controlling the robotic arm is located in the `1_main_arm_code/` directory.
 - **3D Model**: The 3D model files for the arm are included in the repo. For the best experience, clone the entire repository rather than downloading individual files.
-- **Documentation**: A detailed explanation of the arm's functionality is available in `5_documentation/Documentation.pdf`. Note: The documentation was written without APA formatting, so it may appear informal—apologies for any unprofessional presentation!
+- **Documentation**: A detailed explanation of the arm's functionality is available in `5_documentation/Documentation.pdf`. Note: The documentation was written without APA formatting, so it may appear informal. Apologies for any unprofessional presentation!
 
 ## About the Project
 
