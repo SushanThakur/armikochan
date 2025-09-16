@@ -1,17 +1,27 @@
 # Armikochan - Robotic Arm Project
 
-Welcome to the repository for **Armikochan**, my hobby project featuring a custom-designed robotic arm. This repo contains the source code and 3D model files for the project.
+Welcome to the **Armikochan** repository! This is my hobby project showcasing a custom-designed robotic arm, complete with source code and 3D model files.
 
 ## Repository Contents
 
-- **Source Code**: The main code for controlling the robotic arm is located in the `1_main_arm_code/` directory.
-- **3D Model**: The 3D model files for the arm are included in the repository. To explore the model, I recommend cloning the entire repo rather than downloading individual files.
-- **Documentation**: For a detailed explanation of how the arm works, check out the `5_documentation/Documentation.pdf` file.
+- **Source Code**: The primary code for controlling the robotic arm is located in the `1_main_arm_code/` directory.
+- **3D Model**: The 3D model files for the arm are included in the repo. For the best experience, clone the entire repository rather than downloading individual files.
+- **Documentation**: A detailed explanation of the arm's functionality is available in `5_documentation/Documentation.pdf`. Note: The documentation was written without APA formatting, so it may appear informal—apologies for any unprofessional presentation!
 
 ## About the Project
 
-Armikochan is a personal project where I handled all aspects of the design, including the mechanical structure, electronics, and programming. As a hobby project, there's plenty of room for improvement, and I welcome your suggestions!
+Armikochan is a solo endeavor where I designed the mechanical structure, electronics, and software from scratch. As a hobby project, it’s a work in progress with plenty of opportunities for enhancement. I’d love to hear your feedback and suggestions!
 
 ## Get Involved
 
-If you're interested in building a similar robotic arm or have questions, feel free to reach out! You can contact me at [mail@sushant.uk](mailto:mail@sushant.uk). I'd be happy to assist or collaborate.
+Interested in building your own robotic arm or have questions? Reach out to me at [mail@sushant.uk](mailto:mail@sushant.uk). I’m excited to help or collaborate!
+
+## How to Contribute
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/SushanThakur/armikochan.git
+2. Explore the code, 3D models, and documentation.
+3. Share your ideas or feedback by opening an issue or contacting me directly.
+
+Thank you for checking out Armikochan! I hope this project sparks your curiosity and creativity.
