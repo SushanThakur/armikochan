@@ -13,8 +13,8 @@
 
 #define changeRate 0.05
 
-const char *ssid = "TESTAP01";
-const char *password = "12345678@";
+const char *ssid = "YOUR_SSID_HERE";
+const char *password = "YOUR_PASSWORD_HERE";
 
 esp_now_peer_info_t peerInfo;
 uint8_t broadcastAddress[] = { 0xCA, 0xC9, 0xA3, 0x60, 0x2B, 0xA5 };

@@ -5,8 +5,8 @@
 #include <ArduinoJson.h>
 
 
-const char *ssid = "Finance_Mantra_2.4";
-const char *password = "Whatdahellisthes";
+const char *ssid = "YOUR_SSID_HERE";
+const char *password = "YOUR_PASSWORD_HERE";
 
 AsyncWebServer server(80);
 AsyncWebSocket myWebSocket("/ws");  // Use a different name for the AsyncWebSocket instance

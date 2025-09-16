@@ -1,13 +1,17 @@
-This is the repo for the source code and 3D-Model of my robotic arm project named 'Armikochan'.
+# Armikochan - Robotic Arm Project
 
-The main code for robotic arm is in the receiver/ dir.
+Welcome to the repository for **Armikochan**, my hobby project featuring a custom-designed robotic arm. This repo contains the source code and 3D model files for the project.
 
-If you want to see the 3D-Model youself, consider cloning this whole repo instead of just downloading specific part.
+## Repository Contents
 
-I have explained the working of this arm in a word file named 'Armikochan.docx', you can check that out for complete understanding.
+- **Source Code**: The main code for controlling the robotic arm is located in the `1_main_arm_code/` directory.
+- **3D Model**: The 3D model files for the arm are included in the repository. To explore the model, I recommend cloning the entire repo rather than downloading individual files.
+- **Documentation**: For a detailed explanation of how the arm works, check out the `5_documentation/Documentation.pdf` file.
 
-This was more of a hobby project and I did all of the designing, coding, electronic parts by my self and I understand that there are so many room for improvements. Feel free to suggest.
+## About the Project
 
-Leave me an E-mail if you want to make something like this yourself at mail@sushant.uk 
+Armikochan is a personal project where I handled all aspects of the design, including the mechanical structure, electronics, and programming. As a hobby project, there's plenty of room for improvement, and I welcome your suggestions!
 
-I would be more than happy to help.
+## Get Involved
+
+If you're interested in building a similar robotic arm or have questions, feel free to reach out! You can contact me at [mail@sushant.uk](mailto:mail@sushant.uk). I'd be happy to assist or collaborate.
